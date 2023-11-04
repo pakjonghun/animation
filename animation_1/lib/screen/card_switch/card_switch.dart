@@ -10,165 +10,152 @@ class CardSwitch extends StatefulWidget {
 }
 
 class _CardSwitchState extends State<CardSwitch> with TickerProviderStateMixin {
-  int direction = 0;
   int index = 1;
+  late final width = MediaQuery.of(context).size.width;
 
-  String getPath(int index) {
-    return 'assets/images/$index.jpg';
-  }
-
-  int getIndex(int index) {
-    if (index < 1) return 5;
-    if (index > 5) return 1;
-    return index;
-  }
-
-  late final size = MediaQuery.of(context).size;
   late AnimationController _controller = AnimationController(
     vsync: this,
     duration: Duration(
       milliseconds: 1000,
     ),
-    upperBound: size.width + 100,
-    lowerBound: -(size.width + 100),
+    upperBound: (width + 100),
+    lowerBound: -(width + 100),
     value: 0,
   );
+
+  Tween<double> _angle = Tween<double>(
+    begin: -15 * pi / 180,
+    end: 15 * pi / 180,
+  );
+
+  Tween<double> _scale = Tween<double>(
+    begin: -1,
+    end: 1,
+  );
+
+  ColorTween _leftButtonBgColor = ColorTween(
+    begin: Colors.pinkAccent,
+    end: Colors.pink[200],
+  );
+
+  ColorTween _leftButtonIconColor = ColorTween(
+    begin: Colors.pink[50],
+    end: Colors.white,
+  );
+
+  Tween<double> _buttonScale = Tween(
+    begin: 1,
+    end: 1.2,
+  );
+
+  double _calculatedFactor({
+    required double toDis,
+    bool? isHalfFigure = false,
+  }) {
+    final fromDis = width * 2;
+    double normalizedFactor = isHalfFigure == false
+        ? (_controller.value + width) / fromDis
+        : _controller.value.abs() / fromDis;
+
+    return normalizedFactor;
+  }
 
   void _onPanUpdate(DragUpdateDetails details) {
     _controller.value += details.delta.dx;
   }
 
-  void _whenEnd() {
+  bool get isNext => _controller.value > 0;
+
+  int getIndex(int index) {
+    if (index < 0) return 5;
+    if (index > 5) return 1;
+    return index;
+  }
+
+  void _whenCompleted() {
+    _controller.value = 0;
     setState(() {
-      direction = 0;
       index = getIndex(index + 1);
     });
-
-    _controller.value = 0;
   }
 
   void _onPanEnd(DragEndDetails details) {
-    if (_controller.value.abs() > size.width - 100) {
-      double offset = _controller.value < 0 ? -100 : 100;
-      _controller.animateTo(_controller.value + offset).whenComplete(_whenEnd);
+    final isInBound = _controller.value.abs() > width - 200;
+
+    if (isInBound) {
+      _controller
+          .animateTo(
+            _controller.value + (isNext ? 200 : -200),
+          )
+          .whenComplete(_whenCompleted);
     } else {
       _controller.animateTo(0);
     }
   }
 
-  void _back() {
-    _controller.animateTo(-size.width).whenComplete(_whenEnd);
+  void _onLeftIconTap() {
+    _controller.animateTo(-width).whenComplete(_whenCompleted);
   }
 
-  void _forward() {
-    _controller.animateTo(size.width).whenComplete(_whenEnd);
+  void _onRightIconTap() {
+    _controller.animateTo(width).whenComplete(_whenCompleted);
   }
 
-  Tween<double> _scale = Tween<double>(begin: 0.5, end: 1);
-  Tween<double> _rotate = Tween<double>(begin: 0, end: 15);
-  Tween<double> _buttonScale = Tween<double>(begin: 1, end: 1.5);
-  ColorTween _bc = ColorTween(begin: Colors.pink[400], end: Colors.pink[200]);
-  ColorTween _fc = ColorTween(begin: Colors.white, end: Colors.black);
-
-  double getDiffMappedDouble({
-    required double fromH,
-    required double fromL,
-    required double toH,
-    required double toL,
-    required double fromValue,
-    required bool isReverse,
-  }) {
-    final fromD = fromH - fromL;
-    final toD = toH - toL;
-    final fromLowToValue = (fromValue - fromL) / (fromD);
-    final toValue =
-        isReverse ? toH - toD * fromLowToValue : toL + toD * fromLowToValue;
-    return toValue;
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final width = MediaQuery.of(context).size.width;
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          "card switch",
+          "card_switch",
         ),
       ),
       body: AnimatedBuilder(
           animation: _controller,
           builder: (context, child) {
-            final bool isLeftBound = _controller.value < 0;
-            final bool isRightBound = _controller.value > 0;
-
-            return Center(
-              child: Padding(
-                padding: EdgeInsets.only(
-                  top: 100,
-                ),
-                child: Column(
-                  children: [
-                    Stack(
+            final curAnimationValue = _controller.value;
+            return Padding(
+              padding: EdgeInsets.only(
+                top: 100,
+              ),
+              child: Column(
+                children: [
+                  Center(
+                    child: Stack(
                       children: [
                         Positioned(
                           child: Transform.scale(
-                            scale: _scale.transform(
-                              ((0.5 / _controller.upperBound * 2) *
-                                  _controller.value.abs()),
-                            ),
-                            child: SizedBox(
-                              width: size.width * 0.8,
-                              height: size.width,
-                              child: Material(
-                                clipBehavior: Clip.hardEdge,
-                                child: Image.asset(
-                                  fit: BoxFit.cover,
-                                  getPath(
-                                    getIndex(
-                                      index + 1,
-                                    ),
-                                  ),
-                                ),
-                                elevation: 10,
-                                color: Colors.red,
-                                borderRadius: BorderRadius.circular(
-                                  10,
-                                ),
-                              ),
+                            scale: _scale
+                                .transform(
+                                  _calculatedFactor(toDis: 2),
+                                )
+                                .abs(),
+                            child: Card(
+                              width: width,
+                              index: getIndex(index + 1),
                             ),
                           ),
                         ),
                         Positioned(
-                          child: SizedBox(
-                            width: width * 0.8,
-                            height: width,
-                            child: GestureDetector(
-                              onPanEnd: _onPanEnd,
-                              onPanUpdate: _onPanUpdate,
-                              child: Transform.translate(
-                                offset: Offset(_controller.value, 0),
-                                child: Transform.rotate(
-                                  angle: _rotate.transform(((15 /
-                                              ((_controller.upperBound - 100) *
-                                                  2)) *
-                                          _controller.value)) *
-                                      (pi / 180),
-                                  child: Material(
-                                    clipBehavior: Clip.hardEdge,
-                                    child: Image.asset(
-                                      fit: BoxFit.cover,
-                                      getPath(
-                                        getIndex(
-                                          index,
-                                        ),
-                                      ),
-                                    ),
-                                    elevation: 10,
-                                    color: Colors.red,
-                                    borderRadius: BorderRadius.circular(
-                                      10,
-                                    ),
+                          child: GestureDetector(
+                            onPanUpdate: _onPanUpdate,
+                            onPanEnd: _onPanEnd,
+                            child: Transform.translate(
+                              offset: Offset(_controller.value, 0),
+                              child: Transform.rotate(
+                                angle: _angle.transform(
+                                  _calculatedFactor(
+                                    toDis: _angle.end! - _angle.begin!,
                                   ),
+                                ),
+                                child: Card(
+                                  width: width,
+                                  index: getIndex(index),
                                 ),
                               ),
                             ),
@@ -176,75 +163,130 @@ class _CardSwitchState extends State<CardSwitch> with TickerProviderStateMixin {
                         ),
                       ],
                     ),
-                    SizedBox(
-                      height: 20,
-                    ),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Transform.scale(
-                          scale: isLeftBound
-                              ? _buttonScale.transform(
-                                  (0.5 / (size.width * 2)) *
-                                      _controller.value.abs())
-                              : 1,
-                          child: GestureDetector(
-                            onTap: _back,
-                            child: Container(
-                              width: 50,
-                              height: 50,
-                              decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  color: _bc.lerp(isLeftBound
-                                      ? _controller.value.abs() / size.width * 2
-                                      : 1)),
-                              child: Icon(
-                                Icons.cancel_outlined,
-                                color: _fc.lerp(isLeftBound
-                                    ? _controller.value.abs() / size.width * 2
-                                    : 1),
-                                size: 40,
+                  ),
+                  SizedBox(
+                    height: 50,
+                  ),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Transform.scale(
+                        scale: curAnimationValue < 0
+                            ? _buttonScale.transform(
+                                _calculatedFactor(
+                                  toDis: 2.4,
+                                  isHalfFigure: true,
+                                ),
+                              )
+                            : 1,
+                        child: GestureDetector(
+                          onTap: _onLeftIconTap,
+                          child: Container(
+                            padding: EdgeInsets.all(
+                              3,
+                            ),
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: _leftButtonBgColor.lerp(
+                                curAnimationValue < 0
+                                    ? _calculatedFactor(
+                                        toDis: width * 2,
+                                      )
+                                    : 1,
+                              ),
+                            ),
+                            child: Icon(
+                              Icons.cancel_outlined,
+                              size: 40,
+                              color: _leftButtonIconColor.lerp(
+                                curAnimationValue < 0
+                                    ? _calculatedFactor(
+                                        toDis: width * 2,
+                                      )
+                                    : 1,
                               ),
                             ),
                           ),
                         ),
-                        SizedBox(
-                          width: 10,
-                        ),
-                        Transform.scale(
-                          scale: isRightBound
-                              ? _buttonScale.transform(
-                                  (0.5 / (size.width * 2)) *
-                                      _controller.value.abs())
-                              : 1,
-                          child: GestureDetector(
-                            onTap: _forward,
-                            child: Container(
-                              width: 50,
-                              height: 50,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: _bc.lerp(isRightBound
-                                    ? _controller.value.abs() / size.width * 2
-                                    : 1),
+                      ),
+                      SizedBox(
+                        width: 10,
+                      ),
+                      Transform.scale(
+                        scale: curAnimationValue > 0
+                            ? _buttonScale.transform(
+                                _calculatedFactor(
+                                  toDis: 2.4,
+                                  isHalfFigure: true,
+                                ),
+                              )
+                            : 1,
+                        child: GestureDetector(
+                          onTap: _onRightIconTap,
+                          child: Container(
+                            padding: EdgeInsets.all(
+                              3,
+                            ),
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: _leftButtonBgColor.lerp(
+                                curAnimationValue > 0
+                                    ? _calculatedFactor(
+                                        toDis: width * 2,
+                                      )
+                                    : 1,
                               ),
-                              child: Icon(
-                                Icons.free_breakfast_outlined,
-                                color: _fc.lerp(isRightBound
-                                    ? _controller.value.abs() / size.width * 2
-                                    : 1),
-                                size: 40,
+                            ),
+                            child: Icon(
+                              Icons.check_circle_outline,
+                              size: 40,
+                              color: _leftButtonIconColor.lerp(
+                                curAnimationValue > 0
+                                    ? _calculatedFactor(
+                                        toDis: width * 2,
+                                      )
+                                    : 1,
                               ),
                             ),
                           ),
-                        )
-                      ],
-                    )
-                  ],
-                ),
+                        ),
+                      )
+                    ],
+                  ),
+                ],
               ),
             );
           }),
+    );
+  }
+}
+
+class Card extends StatelessWidget {
+  const Card({
+    super.key,
+    required this.width,
+    required this.index,
+  });
+
+  final double width;
+  final int index;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      borderRadius: BorderRadius.circular(
+        10,
+      ),
+      clipBehavior: Clip.hardEdge,
+      elevation: 10,
+      child: SizedBox(
+        width: width * 0.8,
+        height: width,
+        child: Image.asset(
+          "assets/images/$index.jpg",
+          fit: BoxFit.cover,
+        ),
+      ),
     );
   }
 }
