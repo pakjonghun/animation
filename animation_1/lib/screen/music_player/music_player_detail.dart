@@ -23,6 +23,11 @@ class _MusicDetailState extends State<MusicDetail>
     upperBound: mediaSize.width - 80,
   );
 
+  Tween<double> _volumeTween = Tween(
+    begin: 0.0,
+    end: 59.0,
+  );
+
   _onPanUpdate(DragUpdateDetails details) {
     _volumeController.value += details.delta.dx;
   }
@@ -51,32 +56,44 @@ class _MusicDetailState extends State<MusicDetail>
             left: 40,
             right: 40,
           ),
-          child: Column(
-            children: [
-              Hero(
-                tag: path,
-                child: Container(
-                  width: _size.width * 0.8,
-                  height: 320,
-                  clipBehavior: Clip.hardEdge,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(
-                      10,
-                    ),
-                    image: DecorationImage(
-                      fit: BoxFit.cover,
-                      image: AssetImage(path),
+          child: AnimatedBuilder(
+            animation: _volumeController,
+            builder: (context, child) {
+              final volumeProgress = _volumeTween.transform(
+                  (_volumeController.value - _volumeController.lowerBound) /
+                      (_volumeController.upperBound -
+                              _volumeController.lowerBound)
+                          .abs());
+
+              final volumeValue =
+                  volumeProgress.round().toString().padLeft(2, '0');
+
+              final leftVolumeValue =
+                  (59 - volumeProgress.round()).toString().padLeft(2, '0');
+
+              return Column(
+                children: [
+                  Hero(
+                    tag: path,
+                    child: Container(
+                      width: _size.width * 0.8,
+                      height: 320,
+                      clipBehavior: Clip.hardEdge,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(
+                          10,
+                        ),
+                        image: DecorationImage(
+                          fit: BoxFit.cover,
+                          image: AssetImage(path),
+                        ),
+                      ),
                     ),
                   ),
-                ),
-              ),
-              SizedBox(
-                height: 10,
-              ),
-              AnimatedBuilder(
-                animation: _volumeController,
-                builder: (context, child) {
-                  return GestureDetector(
+                  SizedBox(
+                    height: 10,
+                  ),
+                  GestureDetector(
                     onPanDown: _onPanDown,
                     onPanUpdate: _onPanUpdate,
                     child: CustomPaint(
@@ -86,20 +103,20 @@ class _MusicDetailState extends State<MusicDetail>
                         10,
                       ),
                     ),
-                  );
-                },
-              ),
-              SizedBox(
-                height: 10,
-              ),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text("00:00"),
-                  Text("00:00"),
+                  ),
+                  SizedBox(
+                    height: 10,
+                  ),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text("00:${volumeValue}"),
+                      Text("00:${leftVolumeValue}"),
+                    ],
+                  )
                 ],
-              )
-            ],
+              );
+            },
           ),
         ),
       ),
@@ -137,8 +154,7 @@ class Volume extends CustomPainter {
     );
 
     final circlePaint = Paint()..color = Colors.grey;
-    final Pointer =
-        canvas.drawCircle(Offset(progress, size.height / 2), 14, circlePaint);
+    canvas.drawCircle(Offset(progress, size.height / 2), 12, circlePaint);
   }
 
   @override
