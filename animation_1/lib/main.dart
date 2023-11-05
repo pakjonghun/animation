@@ -3,6 +3,7 @@ import 'package:animation_1/screen/card_switch/card_switch.dart';
 import 'package:animation_1/screen/explict.dart';
 import 'package:animation_1/screen/explict2.dart';
 import 'package:animation_1/screen/explict3.dart';
+import 'package:animation_1/screen/music_player/music_player.dart';
 import 'package:flutter/material.dart';
 
 void main() {
@@ -95,6 +96,18 @@ class MainScreen extends StatelessWidget {
                 ),
                 child: Text(
                   "card switch",
+                ),
+              ),
+              SizedBox(
+                height: 20,
+              ),
+              ElevatedButton(
+                onPressed: () => _movePage(
+                  context: context,
+                  screen: const MusicPlayer(),
+                ),
+                child: Text(
+                  "music player",
                 ),
               )
             ],
