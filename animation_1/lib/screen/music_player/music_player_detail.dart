@@ -107,6 +107,7 @@ class _MusicDetailState extends State<MusicDetail>
                   SizedBox(
                     height: 10,
                   ),
+                  //aa
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
